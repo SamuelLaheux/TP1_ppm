@@ -1,55 +1,85 @@
 
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include "gargouille.h"
 
 
 //============================================================================
 //                           Function definitions
 //============================================================================
-void ppm_write_to_file(picture* im, char* nom)
+int gargouille::GetWidth(void) const
+{
+  return width;
+}
+
+int gargouille::GetHeight(void) const
+{
+  return height;
+}
+
+u_char* gargouille::GetData(void) const
+{
+  return data;
+}
+
+gargouille::gargouille(void) // Initialize empty constructor
+{
+  width = 0;
+  height = 0;
+  data = NULL;
+}
+
+gargouille::gargouille(const gargouille& garg)
+{
+  width = garg.GetWidth();
+  height = garg.GetHeight();
+  data = new u_char[3*width*height];
+  memcpy(data, garg.GetData(), 3*width*height*sizeof(*data));
+}
+
+void gargouille::ppm_write_to_file(const char* nom)
 {
   // Create a pointer on a file
   FILE* ppm_output = fopen(nom, "wb");
 
   // Write header
-  fprintf(ppm_output, "P6\n%d %d\n255\n", im->width, im->height);
+  fprintf(ppm_output, "P6\n%d %d\n255\n", width, height);
 
   // Write pixels
-  fwrite(im->data, 3, (im->width)*(im->height), ppm_output);
+  fwrite(data, 3, width*height, ppm_output);
 
   // Close the file
   fclose(ppm_output);
 }
 
-void ppm_read_from_file(picture* im, char* nom)
+void gargouille::ppm_read_from_file(const char* nom)
 {
   // Create a pointer on a file
   FILE* ppm_input = fopen(nom,"rb");
 
   // Read file header
-  fscanf(ppm_input, "P6\n%d %d\n255\n", &(im->width), &(im->height));
+  fscanf(ppm_input, "P6\n%d %d\n255\n", &width, &height);
 
   // Allocate memory according to width and height
-  im->data = new u_char[(3 * (im->width) * (im->height))];
+  data = new u_char[(3 * width * height)];
 
   // Read the actual image data
-  fread(im->data, 3, (im->width) * (im->height), ppm_input);
+  fread(data, 3, width * height, ppm_input);
 
   // Close the file
   fclose(ppm_input);
 }
 
-void ppm_desaturate(picture* im)
+void gargouille::ppm_desaturate()
 {
   int x, y;
 
   // For each pixel ...
-  for (x = 0 ; x < im->width ; x++)
+  for (x = 0 ; x < width ; x++)
   {
-    for (y = 0 ; y < im->height ; y++)
+    for (y = 0 ; y < height ; y++)
     {
       u_int grey_lvl = 0;
       int rgb_canal;
@@ -57,22 +87,22 @@ void ppm_desaturate(picture* im)
       // Compute the grey level
       for (rgb_canal = 0 ; rgb_canal < 3 ; rgb_canal++)
       {
-        grey_lvl += im->data[ 3 * (y * im->width + x) + rgb_canal ];
+        grey_lvl += data[ 3 * (y * width + x) + rgb_canal ];
       }
       grey_lvl /= 3;
       assert(grey_lvl >= 0 && grey_lvl <=255);
 
       // Set the corresponding pixel's value in new_image
-      memset(&(im->data)[3 * (y * im->width + x)], grey_lvl, 3);
+      memset(&data[3 * (y * width + x)], grey_lvl, 3);
     }
   }
 }
 
-void ppm_shrink(picture* im, int factor)
+void gargouille::ppm_shrink(int factor)
 {
   // Compute new image size and allocate memory for the new image
-  int new_width   = (im->width) / factor;
-  int new_height  = (im->height) / factor;
+  int new_width   = (width) / factor;
+  int new_height  = (height) / factor;
   u_char* new_image = new u_char[(3 * new_width * new_height)];
 
   // Precompute factor^2 (for performance reasons)
@@ -96,7 +126,7 @@ void ppm_shrink(picture* im, int factor)
       // model image corresponding to the pixel we are creating
       int x0 = x * factor;
       int y0 = y * factor;
-      int i0 = 3 * (y0 * (im->width) + x0);
+      int i0 = 3 * (y0 * (width) + x0);
 
       // Compute RGB values for the new pixel
       int dx, dy;
@@ -106,12 +136,12 @@ void ppm_shrink(picture* im, int factor)
         {
           // Compute the offset of the current pixel (in the model image)
           // with regard to the top-left pixel of the current "set of pixels"
-          int delta_i = 3 * (dy * (im->width) + dx);
+          int delta_i = 3 * (dy * (width) + dx);
 
           // Accumulate RGB values
-          red   += (im->data)[i0+delta_i];
-          green += (im->data)[i0+delta_i+1];
-          blue  += (im->data)[i0+delta_i+2];
+          red   += data[i0+delta_i];
+          green += data[i0+delta_i+1];
+          blue  += data[i0+delta_i+2];
         }
       }
 
@@ -128,11 +158,11 @@ void ppm_shrink(picture* im, int factor)
   }
 
   // Update image size
-  im->width  = new_width;
-  im->height = new_height;
+  width  = new_width;
+  height = new_height;
 
   // Update image
-  (im->data) = new_image;
+  data = new_image;
 }
 
 
