@@ -1,8 +1,8 @@
 
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include "gargouille.h"
 
 //============================================================================
@@ -14,65 +14,47 @@ int main(int argc, char* argv[])
   // Read file "gargouille.ppm" into image (width and height)
   //--------------------------------------------------------------------------
 
-  // Create struct load
-  picture* load = new picture[1];
-  load->width = 0;
-  load->height = 0;
-  load->data = NULL;
+  // Create an object load to type gargouille
+  //gargouille* load1 = new gargouille(); // Allocation dynamique
+  gargouille load2 = gargouille(); // Appel explicite
   
-  // Load gargouille in struct load
-  ppm_read_from_file(load, "gargouille.ppm");
+  // Load gargouille.ppm in object load2
+  load2.ppm_read_from_file("gargouille.ppm");
 
 
   //--------------------------------------------------------------------------
   // Create a desaturated (B&W) copy of the image we've just read and
   // write it into "gargouille_BW.ppm"
   //--------------------------------------------------------------------------
-  // Create struct load_bw
-  picture* load_bw = new picture[1];
-  load_bw->width = load->width;
-  load_bw->height = load->height;
-  load_bw->data = new u_char[(3 * load_bw->width * load_bw->height)];
-
-  // Copy image into image_bw
-  memcpy(load_bw->data, load->data, 3 * load_bw->width * load_bw->height * sizeof(*load_bw->data));
+  // Create an object load_bw of type gargouille
+  gargouille load_bw = gargouille(load2);
 
   // Desaturate image_bw
-  ppm_desaturate(load_bw);
+  load_bw.ppm_desaturate();
 
   // Write the desaturated image into "gargouille_BW.ppm"
-  ppm_write_to_file(load_bw, "gargouille_BW.ppm");
+  load_bw.ppm_write_to_file("gargouille_BW.ppm");
 
-  // Free the desaturated image
-  delete(load_bw->data);
-  delete(load_bw);
-
+  // Delete the desaturated image
+  delete(load_bw.GetData());
+  
 
   //--------------------------------------------------------------------------
   // Create a resized copy of the image and
   // write it into "gargouille_small.ppm"
   //--------------------------------------------------------------------------
-  // Create struct load_small
-  picture* load_small = new picture[1];  
-  load_small->width = load->width;
-  load_small->height = load->height;
-  load_small->data = new u_char[(3 * load_small->width * load_small->height)];
-
-  // Copy image into image_small
-  memcpy(load_small->data, load->data, 3 * load_small->width * load_small->height * sizeof(*load_small->data));
+  // Create an object load_small of type gargouille
+  gargouille load_small = gargouille(load2);  
 
   // Shrink image_small size 2-fold
-  ppm_shrink(load_small, 2);
+  load_small.ppm_shrink(2);
 
   // Write the desaturated image into "gargouille_small.ppm"
-  ppm_write_to_file(load_small, "gargouille_small.ppm");
+  load_small.ppm_write_to_file("gargouille_small.ppm");
 
-  // Free the not yet freed images
-  delete(load_small->data);
-  delete(load_small);
-
-  delete(load);
-  delete(load->data);
+  // delete the not yet deleted images
+  delete(load_small.GetData());
+  delete(load2.GetData());
 
   return 0;
 }
